@@ -14,7 +14,7 @@ extern void SendRFBuckets(uint16_t *buckets, uint8_t *rfdata, uint8_t n, uint8_t
 extern void SendTimingProtocol(uint16_t sync_high, uint16_t sync_low,
 		uint16_t bit_0_high, uint16_t bit_0_low, uint16_t bit_1_high, uint16_t bit_1_low,
 		uint8_t sync_bits, uint8_t bitcount, uint8_t inverse, uint8_t position);
-extern void Bucket_Received(uint16_t duration);
+extern void Bucket_Received(uint8_t high_bucket, uint16_t duration);
 
 // 112 byte == 896 bits, so a RF signal with maximum of 896 bits is possible
 // for bucket transmission, this depends on the number of buckets.
@@ -62,7 +62,7 @@ extern SI_SEGMENT_VARIABLE(actual_sync_bit, uint8_t, SI_SEG_XDATA);
 extern SI_SEGMENT_VARIABLE(actual_byte, uint8_t, SI_SEG_XDATA);
 
 extern SI_SEGMENT_VARIABLE(bucket_sync, uint16_t, SI_SEG_XDATA);
-extern SI_SEGMENT_VARIABLE(buckets[15], uint16_t, SI_SEG_XDATA);
+extern SI_SEGMENT_VARIABLE(buckets[8], uint16_t, SI_SEG_XDATA);
 extern SI_SEGMENT_VARIABLE(bucket_count, uint8_t, SI_SEG_XDATA);
 
 #endif /* INC_RF_HANDLING_H_ */

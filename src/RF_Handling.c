@@ -40,7 +40,7 @@ SI_SEGMENT_VARIABLE(crc, uint8_t, SI_SEG_XDATA) = 0;
 
 // up to 8 timing buckets for MODE_BUCKET
 SI_SEGMENT_VARIABLE(bucket_sync, uint16_t, SI_SEG_XDATA);
-SI_SEGMENT_VARIABLE(buckets[15], uint16_t, SI_SEG_XDATA);	// -1 because of the bucket_sync
+SI_SEGMENT_VARIABLE(buckets[8], uint16_t, SI_SEG_XDATA);	// maximum of 8 buckets (0..7)
 SI_SEGMENT_VARIABLE(bucket_count, uint8_t, SI_SEG_XDATA) = 0;
 
 //-----------------------------------------------------------------------------
@@ -363,7 +363,7 @@ void PCA0_channel0EventCb()
 
 			// do sniffing by bucket mode
 			case MODE_BUCKET:
-				Bucket_Received(capture_period_neg);
+				Bucket_Received(false, capture_period_neg);
 				break;
 		}
 	}
@@ -391,7 +391,7 @@ void PCA0_channel0EventCb()
 
 			// do sniffing by bucket mode
 			case MODE_BUCKET:
-				Bucket_Received(capture_period_pos);
+				Bucket_Received(true, capture_period_pos);
 				break;
 		}
 	}
@@ -644,11 +644,11 @@ void CheckUsedBuckets(uint8_t data_len)
 	// mark first all used buckets
 	for (i = 0; i < (data_len + 1); i++)
 	{
-		if ((buckets[RF_DATA[i] >> 4] & 0x7FFF) > 0)
-			buckets[RF_DATA[i] >> 4] |= 0x8000;
+		if ((buckets[(RF_DATA[i] >> 4) & 0x07] & 0x7FFF) > 0)
+			buckets[(RF_DATA[i] >> 4) & 0x07] |= 0x8000;
 
-		if ((buckets[RF_DATA[i] & 0x0F] & 0x7FFF) > 0)
-			buckets[RF_DATA[i] & 0x0F] |= 0x8000;
+		if ((buckets[RF_DATA[i] & 0x07] & 0x7FFF) > 0)
+			buckets[RF_DATA[i] & 0x07] |= 0x8000;
 	}
 
 	// move buckets forward
@@ -663,13 +663,13 @@ void CheckUsedBuckets(uint8_t data_len)
 				buckets[x] = buckets[x + 1];
 
 				// replace all x+1 with x in RF data
-				for (a= 0; a < (data_len + 1); a++)
+				for (a = 0; a < (data_len + 1); a++)
 				{
-					if ((RF_DATA[a] >> 4) == (x + 1))
-						RF_DATA[a] = (x << 4) | (RF_DATA[a] & 0x0F);
+					if (((RF_DATA[a] >> 4) & 0x07) == (x + 1))
+						RF_DATA[a] = (x << 4) | (RF_DATA[a] & 0x8F);
 
-					if ((RF_DATA[a] & 0x0F) == (x + 1))
-						RF_DATA[a] = (RF_DATA[a] & 0xF0) | x;
+					if ((RF_DATA[a] & 0x07) == (x + 1))
+						RF_DATA[a] = (RF_DATA[a] & 0xF8) | x;
 				}
 				x++;
 			}
@@ -688,7 +688,7 @@ void CheckUsedBuckets(uint8_t data_len)
 	bucket_count -= removed_buckets;
 }
 
-void Bucket_Received(uint16_t duration)
+void Bucket_Received(uint8_t high_bucket, uint16_t duration)
 {
 	uint8_t bucket_index;
 
@@ -772,12 +772,12 @@ void Bucket_Received(uint16_t duration)
 			{
 				if (actual_bit_of_byte == 4)
 				{
-					RF_DATA[actual_byte] = bucket_index << 4;
+					RF_DATA[actual_byte] = (bucket_index | (high_bucket << 3)) << 4;
 					actual_bit_of_byte = 0;
 				}
 				else
 				{
-					RF_DATA[actual_byte] |= (bucket_index & 0x0F);
+					RF_DATA[actual_byte] |= (bucket_index | (high_bucket << 3)) & 0x0F;
 
 					// 8 bits are done, compute crc of data
 					crc = Compute_CRC8_Simple_OneByte(crc ^ RF_DATA[actual_byte]);
@@ -813,11 +813,11 @@ void Bucket_Received(uint16_t duration)
 					// add sync bucket number to data
 					if (actual_bit_of_byte == 0)
 					{
-						RF_DATA[actual_byte] |= (bucket_count & 0x0F);
+						RF_DATA[actual_byte] |= ((bucket_count | (high_bucket << 3)) & 0x0F);
 					}
 					else
 					{
-						RF_DATA[actual_byte] = (bucket_count << 4) | 0x0F;
+						RF_DATA[actual_byte] = ((bucket_count | (high_bucket << 3)) << 4) | 0x0F;
 					}
 
 					// remove unused buckets
