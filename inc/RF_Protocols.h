@@ -87,7 +87,7 @@ typedef struct TIMING_PROTOCOL_DATA
  * Protocol array
  * use a value of "0" for SYNC.high, SYNC.low or PULSE_TIME to deactivate some checking while decoding
  */
-#define PROTOCOLCOUNT	8
+#define PROTOCOLCOUNT	9
 #if PROTOCOLCOUNT > 0x7F
 #error Too much protocols are defined, stop!
 #endif
@@ -233,6 +233,23 @@ SI_SEGMENT_VARIABLE(PROTOCOL_DATA[PROTOCOLCOUNT], static const struct TIMING_PRO
 			60,			// TOLERANCE
 			0,			// REPEAT_DELAY
 			true		// INVERSE
+		},
+
+		/*
+		 * AC123-01
+		 */
+		{
+			//4800,		// SYNC_HIGH
+			//600,		// SYNC_LOW
+			{ 17,  2 },	// SYNC HIGH_LOW
+			1,			// SYNC_BIT_COUNT
+			300,		// PULSE_TIME
+			{  1,  2 },	// BIT0 HIGH_LOW
+			{  2,  1 },	// BIT1 HIGH_LOW
+			64,			// BIT_COUNT
+			60,			// TOLERANCE
+			0,			// REPEAT_DELAY
+			false		// INVERSE
 		}
 };
 
